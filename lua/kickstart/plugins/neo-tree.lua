@@ -18,7 +18,7 @@ return {
     close_if_last_window = true,
     window = {
       position = "left",
-      width = 30,
+      width = 45,
     },
     filesystem = {
       filtered_items = {
@@ -38,12 +38,10 @@ return {
   },
   config = function(_, opts)
     require('neo-tree').setup(opts)
-    -- Auto-open Neo-tree when Neovim starts with no file arguments
+    -- Auto-open Neo-tree when Neovim starts
     vim.api.nvim_create_autocmd("VimEnter", {
       callback = function()
-        if vim.fn.argc() == 0 then
-          vim.cmd("Neotree show")
-        end
+        vim.cmd("Neotree show")
       end
     })
   end,
