@@ -98,6 +98,37 @@ vim.g.have_nerd_font = false
 -- NOTE: You can change these options as you wish!
 --  For more options, you can see `:help option-list`
 
+-- Check for required dependencies
+local function check_dependencies()
+  local deps = {
+    { cmd = 'rg', name = 'ripgrep', install = 'sudo apt install ripgrep' },
+    { cmd = 'fd', name = 'fd-find', install = 'sudo apt install fd-find' },
+    { cmd = 'git', name = 'git', install = 'sudo apt install git' },
+    { cmd = 'make', name = 'make', install = 'sudo apt install make' },
+    { cmd = 'gcc', name = 'gcc', install = 'sudo apt install gcc' },
+  }
+
+  local missing = {}
+  for _, dep in ipairs(deps) do
+    if vim.fn.executable(dep.cmd) ~= 1 then
+      table.insert(missing, dep)
+    end
+  end
+
+  if #missing > 0 then
+    vim.notify('⚠️  Missing dependencies for full functionality:', vim.log.levels.WARN)
+    for _, dep in ipairs(missing) do
+      vim.notify(string.format('  ❌ %s - Install with: %s', dep.name, dep.install), vim.log.levels.WARN)
+    end
+    vim.notify('  Telescope grep and other features may not work!', vim.log.levels.WARN)
+  end
+end
+
+-- Run dependency check after UI loads
+vim.api.nvim_create_autocmd('UIEnter', {
+  callback = check_dependencies,
+})
+
 -- Make line numbers default
 vim.o.number = true
 -- You can also add relative line numbers, to help with jumping.
@@ -199,6 +230,10 @@ vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right win
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
+-- Terminal keymaps
+vim.keymap.set('n', '<leader>tt', ':split | terminal<CR>', { desc = 'Open [T]erminal below' })
+vim.keymap.set('n', '<leader>tv', ':vsplit | terminal<CR>', { desc = 'Open [T]erminal [V]ertically' })
+
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
 -- vim.keymap.set("n", "<C-S-l>", "<C-w>L", { desc = "Move window to the right" })
@@ -215,7 +250,12 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
   callback = function()
-    vim.hl.on_yank()
+    -- Use the appropriate API based on Neovim version
+    if vim.hl and vim.hl.on_yank then
+      vim.hl.on_yank()
+    elseif vim.highlight and vim.highlight.on_yank then
+      vim.highlight.on_yank()
+    end
   end,
 })
 
