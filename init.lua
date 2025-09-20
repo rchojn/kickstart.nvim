@@ -1020,6 +1020,117 @@ require('lazy').setup({
   require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
+  -- Professional terminal with toggleterm
+  {
+    'akinsho/toggleterm.nvim',
+    version = "*",
+    config = function()
+      require('toggleterm').setup({
+        size = 10,  -- Zawsze 10 linii dla poziomego terminala
+        open_mapping = [[<c-\>]],  -- Ctrl+\ toggle terminal
+        hide_numbers = true,
+        shade_terminals = true,
+        shading_factor = 2,
+        start_in_insert = true,
+        insert_mappings = true,
+        terminal_mappings = true,
+        persist_size = false,  -- Nie zapamiętuj rozmiaru
+        persist_mode = true,
+        direction = 'horizontal',  -- Domyślnie na dole
+        close_on_exit = true,
+        shell = vim.o.shell,
+        auto_scroll = true,  -- Automatyczne scrollowanie do końca
+        float_opts = {
+          border = 'curved',
+          winblend = 3,
+        },
+        winbar = {
+          enabled = false,
+        },
+      })
+
+      -- Custom terminal functions
+      local Terminal = require('toggleterm.terminal').Terminal
+
+      -- Lazygit terminal
+      local lazygit = Terminal:new({
+        cmd = "lazygit",
+        dir = "git_dir",
+        direction = "float",
+        float_opts = {
+          border = "double",
+        },
+      })
+
+      -- Python REPL terminal
+      local python = Terminal:new({
+        cmd = "python3",
+        direction = "horizontal",
+        size = 10,
+      })
+
+      -- Functions dla custom terminals
+      function _LAZYGIT_TOGGLE()
+        lazygit:toggle()
+      end
+
+      function _PYTHON_TOGGLE()
+        python:toggle()
+      end
+
+      -- Keymaps for different terminals
+      vim.keymap.set('n', '<leader>tg', '<cmd>lua _LAZYGIT_TOGGLE()<CR>', { desc = 'Toggle Lazy[G]it' })
+      vim.keymap.set('n', '<leader>tp', '<cmd>lua _PYTHON_TOGGLE()<CR>', { desc = 'Toggle [P]ython REPL' })
+      vim.keymap.set('n', '<leader>tf', '<cmd>ToggleTerm direction=float<CR>', { desc = 'Toggle [F]loating terminal' })
+      vim.keymap.set('n', '<leader>th', '<cmd>ToggleTerm size=10 direction=horizontal<CR>', { desc = 'Toggle [H]orizontal terminal' })
+      vim.keymap.set('n', '<leader>tv', '<cmd>ToggleTerm size=80 direction=vertical<CR>', { desc = 'Toggle [V]ertical terminal' })
+
+      -- Run code in terminal based on filetype
+      vim.keymap.set('n', '<leader>r', function()
+        local ft = vim.bo.filetype
+        local file = vim.fn.expand("%")
+        local cmd = ""
+
+        if ft == "python" then
+          cmd = "python3 " .. file
+        elseif ft == "javascript" then
+          cmd = "node " .. file
+        elseif ft == "typescript" then
+          cmd = "ts-node " .. file
+        elseif ft == "go" then
+          cmd = "go run " .. file
+        elseif ft == "rust" then
+          cmd = "cargo run"
+        elseif ft == "cpp" or ft == "c" then
+          cmd = "make && ./main"
+        elseif ft == "java" then
+          cmd = "javac " .. file .. " && java " .. vim.fn.expand("%:r")
+        elseif ft == "sh" or ft == "bash" then
+          cmd = "bash " .. file
+        elseif ft == "lua" then
+          cmd = "lua " .. file
+        else
+          vim.notify("No run command configured for filetype: " .. ft, vim.log.levels.WARN)
+          return
+        end
+
+        -- Save file first
+        vim.cmd("w")
+
+        -- Send command to terminal
+        vim.cmd("TermExec cmd='" .. cmd .. "' size=10 direction=horizontal")
+      end, { desc = '[R]un current file' })
+
+      -- Function to send selected text to terminal
+      vim.keymap.set('v', '<leader>ts', function()
+        vim.cmd('ToggleTermSendVisualSelection')
+      end, { desc = '[S]end selection to terminal' })
+
+      -- Terminal is available via Ctrl+\ when needed
+      -- No auto-open to keep startup clean
+    end
+  }
+
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
   --
