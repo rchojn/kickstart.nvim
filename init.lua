@@ -138,6 +138,29 @@ vim.o.relativenumber = true
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
 
+-- Auto-reload files changed outside of Neovim (like VS Code)
+vim.o.autoread = true
+
+-- Check for file changes when Neovim gains focus or you navigate between buffers
+vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold', 'CursorHoldI' }, {
+  pattern = '*',
+  callback = function()
+    if vim.fn.mode() ~= 'c' then
+      vim.cmd 'checktime'
+    end
+  end,
+  desc = 'Check if files changed outside of Neovim',
+})
+
+-- Notify when a file changes on disk
+vim.api.nvim_create_autocmd('FileChangedShellPost', {
+  pattern = '*',
+  callback = function()
+    vim.notify('File reloaded - changed outside of Neovim', vim.log.levels.INFO, { title = 'File Update' })
+  end,
+  desc = 'Notify when file is reloaded due to external changes',
+})
+
 -- Don't show the mode, since it's already in the status line
 vim.o.showmode = false
 
@@ -712,8 +735,8 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         -- clangd = {},
-        -- gopls = {},
-        -- pyright = {},
+        gopls = {},
+        pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -1023,23 +1046,23 @@ require('lazy').setup({
   -- Professional terminal with toggleterm
   {
     'akinsho/toggleterm.nvim',
-    version = "*",
+    version = '*',
     config = function()
-      require('toggleterm').setup({
-        size = 10,  -- Zawsze 10 linii dla poziomego terminala
-        open_mapping = [[<c-\>]],  -- Ctrl+\ toggle terminal
+      require('toggleterm').setup {
+        size = 10, -- Zawsze 10 linii dla poziomego terminala
+        open_mapping = [[<c-\>]], -- Ctrl+\ toggle terminal
         hide_numbers = true,
         shade_terminals = true,
         shading_factor = 2,
         start_in_insert = true,
         insert_mappings = true,
         terminal_mappings = true,
-        persist_size = false,  -- Nie zapamiętuj rozmiaru
+        persist_size = false, -- Nie zapamiętuj rozmiaru
         persist_mode = true,
-        direction = 'horizontal',  -- Domyślnie na dole
+        direction = 'horizontal', -- Domyślnie na dole
         close_on_exit = true,
         shell = vim.o.shell,
-        auto_scroll = true,  -- Automatyczne scrollowanie do końca
+        auto_scroll = true, -- Automatyczne scrollowanie do końca
         float_opts = {
           border = 'curved',
           winblend = 3,
@@ -1047,27 +1070,27 @@ require('lazy').setup({
         winbar = {
           enabled = false,
         },
-      })
+      }
 
       -- Custom terminal functions
       local Terminal = require('toggleterm.terminal').Terminal
 
       -- Lazygit terminal
-      local lazygit = Terminal:new({
-        cmd = "lazygit",
-        dir = "git_dir",
-        direction = "float",
+      local lazygit = Terminal:new {
+        cmd = 'lazygit',
+        dir = 'git_dir',
+        direction = 'float',
         float_opts = {
-          border = "double",
+          border = 'double',
         },
-      })
+      }
 
       -- Python REPL terminal
-      local python = Terminal:new({
-        cmd = "python3",
-        direction = "horizontal",
+      local python = Terminal:new {
+        cmd = 'python3',
+        direction = 'horizontal',
         size = 10,
-      })
+      }
 
       -- Functions dla custom terminals
       function _LAZYGIT_TOGGLE()
@@ -1088,34 +1111,34 @@ require('lazy').setup({
       -- Run code in terminal based on filetype
       vim.keymap.set('n', '<leader>r', function()
         local ft = vim.bo.filetype
-        local file = vim.fn.expand("%")
-        local cmd = ""
+        local file = vim.fn.expand '%'
+        local cmd = ''
 
-        if ft == "python" then
-          cmd = "python3 " .. file
-        elseif ft == "javascript" then
-          cmd = "node " .. file
-        elseif ft == "typescript" then
-          cmd = "ts-node " .. file
-        elseif ft == "go" then
-          cmd = "go run " .. file
-        elseif ft == "rust" then
-          cmd = "cargo run"
-        elseif ft == "cpp" or ft == "c" then
-          cmd = "make && ./main"
-        elseif ft == "java" then
-          cmd = "javac " .. file .. " && java " .. vim.fn.expand("%:r")
-        elseif ft == "sh" or ft == "bash" then
-          cmd = "bash " .. file
-        elseif ft == "lua" then
-          cmd = "lua " .. file
+        if ft == 'python' then
+          cmd = 'python3 ' .. file
+        elseif ft == 'javascript' then
+          cmd = 'node ' .. file
+        elseif ft == 'typescript' then
+          cmd = 'ts-node ' .. file
+        elseif ft == 'go' then
+          cmd = 'go run ' .. file
+        elseif ft == 'rust' then
+          cmd = 'cargo run'
+        elseif ft == 'cpp' or ft == 'c' then
+          cmd = 'make && ./main'
+        elseif ft == 'java' then
+          cmd = 'javac ' .. file .. ' && java ' .. vim.fn.expand '%:r'
+        elseif ft == 'sh' or ft == 'bash' then
+          cmd = 'bash ' .. file
+        elseif ft == 'lua' then
+          cmd = 'lua ' .. file
         else
-          vim.notify("No run command configured for filetype: " .. ft, vim.log.levels.WARN)
+          vim.notify('No run command configured for filetype: ' .. ft, vim.log.levels.WARN)
           return
         end
 
         -- Save file first
-        vim.cmd("w")
+        vim.cmd 'w'
 
         -- Send command to terminal
         vim.cmd("TermExec cmd='" .. cmd .. "' size=10 direction=horizontal")
@@ -1123,13 +1146,13 @@ require('lazy').setup({
 
       -- Function to send selected text to terminal
       vim.keymap.set('v', '<leader>ts', function()
-        vim.cmd('ToggleTermSendVisualSelection')
+        vim.cmd 'ToggleTermSendVisualSelection'
       end, { desc = '[S]end selection to terminal' })
 
       -- Terminal is available via Ctrl+\ when needed
       -- No auto-open to keep startup clean
-    end
-  }
+    end,
+  },
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
